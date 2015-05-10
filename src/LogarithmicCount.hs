@@ -2,18 +2,20 @@ module LogarithmicCount (count) where
 
 import CountFrequency
 
-import qualified Data.Vector as Vec
-import Data.Vector (Vector, (!))
+import qualified Data.Vector.Unboxed as U
 
 import Control.Monad.ST
 import Control.Monad
 
-import Data.Vector.Algorithms.Merge as Merge
+import Data.Vector.Algorithms.Intro as Intro
 
-count :: Vector Integer -> Vector (Integer, Integer)
-count vec = Vec.imap (countRepeats vec_sorted) vec_sorted
+count :: U.Vector Int -> U.Vector (Int, Int)
+count vec = U.imap (countRepeats vec_sorted) vec_sorted
     where
         vec_sorted = runST $ do
-            mvec <- Vec.unsafeThaw vec
-            Merge.sort mvec
-            Vec.unsafeFreeze mvec
+            mvec <- U.unsafeThaw vec
+            Intro.sort mvec
+            U.unsafeFreeze mvec
+
+countRepeats :: U.Vector Int -> Int -> Int -> (Int, Int)
+countRepeats v i e = (e, U.length . U.takeWhile (==e) . U.drop i $ v)

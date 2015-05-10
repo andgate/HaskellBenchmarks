@@ -1,17 +1,16 @@
 module BinarySearch (search) where
 
-import qualified Data.Vector as Vec
-import Data.Vector (Vector, (!))
+import Data.Vector.Unboxed as U
 import Data.Maybe
 
-search :: Vector Integer -> Integer -> Maybe Integer
-search vec x = search' vec x 0 (Vec.length vec)
+search :: U.Vector Int -> Int -> Maybe Int
+search v x = search' v x 0 (U.length v)
     where
-        search' vec x lo hi
-            | lo >= hi   = Nothing
-            | x > curr  = search' vec x (mid + 1) hi
-            | x < curr  = search' vec x lo (mid - 1)
-            | otherwise = Just (toInteger mid)
+        search' v x lo hi
+            | lo > hi   = Nothing
+            | x > curr  = search' v x (mid + 1) hi
+            | x < curr  = search' v x lo (mid - 1)
+            | otherwise = Just mid
             where
-                mid = lo + (hi - lo) `div` 2
-                curr = vec!mid
+                mid = (hi + lo) `div` 2
+                curr = (U.unsafeIndex v mid)

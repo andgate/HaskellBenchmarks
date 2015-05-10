@@ -8,42 +8,42 @@ import LogarithmicCount
 
 import Control.DeepSeq
 
-import qualified Data.Vector as Vec
-import Data.Vector (Vector)
+import qualified Data.Vector.Unboxed as U
 
 import System.Random
 import System.CPUTime
 
-type IntegerArray = Vector Integer
-type IntegerArray2 = Vector (Integer, Integer)
-type ArraySearcher = IntegerArray -> Integer -> Maybe Integer
-type ArrayCounter = IntegerArray -> IntegerArray2
-type SearchQuery = (Integer, IntegerArray)
-type BenchmarkResult = (Integer, Integer)
+type IntArray = U.Vector Int
+type IntArray2 = U.Vector (Int, Int)
+type ArraySearcher = IntArray -> Int -> Maybe Int
+type ArrayCounter = IntArray -> IntArray2
+type SearchQuery = (Int, IntArray)
+type BenchmarkResult = (Int, Integer)
 
 -- | The main entry point.
 main :: IO ()
 main = do
-    let ns = [1000, 2000 .. 6000]
-    let vecs = sortedVecs ns
+    let ns = map (*1000000) [1, 2 .. 6] :: [Int]
+    let v = force $ zip ns $ sortedVecs ns
 
-    results <- benchmarkSearches (LinearSearch.search) $ force (zip ns vecs)
+    results <- benchmarkSearches (LinearSearch.search) v
     putStrLn $ showBenchmarks "Linear Search" (zip ns results)
     putStrLn ""
 
-    results <- benchmarkSearches (BinarySearch.search) $ force (zip ns vecs)
+    results <- benchmarkSearches (BinarySearch.search) v
     putStrLn $ showBenchmarks "Binary Search" (zip ns results)
     putStrLn ""
 
-    vecs <- randomVecs (1, 100) ns
+    let ns = map (*10000) [1, 2 .. 6] :: [Int]
+    v <- randomVecs (1, 100) ns
 
     -- QUADRATIC COUNT IS REALLY SLOW
     -- DISABLED UNTIL NEEDED
-    --results <- benchmarkCounts (QuadraticCount.count) $ force vecs
-    --putStrLn $ showBenchmarks "Quadratic Count" (zip ns results)
-    --putStrLn ""
+    results <- benchmarkCounts (QuadraticCount.count) $ force v
+    putStrLn $ showBenchmarks "Quadratic Count" (zip ns results)
+    putStrLn ""
 
-    results <- benchmarkCounts (LogarithmicCount.count) $ force vecs
+    results <- benchmarkCounts (LogarithmicCount.count) $ force v
     putStrLn $ showBenchmarks "Logarithmic Count" (zip ns results)
     putStrLn ""
 
@@ -60,34 +60,40 @@ benchmarkSearch search (x, vec) = do
     end <- r `deepseq` getTime
     return (end - start)
 
-benchmarkCounts :: ArrayCounter -> [IntegerArray] -> IO [Integer]
+benchmarkCounts :: ArrayCounter -> [IntArray] -> IO [Integer]
 benchmarkCounts count vec = (benchmarkCount count) `mapM` vec
 
-benchmarkCount :: ArrayCounter -> IntegerArray -> IO Integer
+benchmarkCount :: ArrayCounter -> IntArray -> IO Integer
 benchmarkCount count vec = do
     start <- getTime
     let r = count vec
     end <- r `deepseq` getTime
     return (end - start)
 
-sortedVecs :: [Integer] -> [IntegerArray]
+sortedVecs :: [Int] -> [IntArray]
 sortedVecs ns = map sortedVec ns
 
-sortedVec :: Integer -> IntegerArray
-sortedVec n = Vec.generate (fromIntegral n) $ \x -> (fromIntegral x)
+sortedVec :: Int -> IntArray
+sortedVec n = U.enumFromN 1 n
 
 
-randomVecs :: (Integer, Integer) -> [Integer] -> IO [IntegerArray]
+randomVecs :: (Int, Int) -> [Int] -> IO [IntArray]
 randomVecs range ns = (randomVec range) `mapM` ns
 
-randomVec :: (Integer, Integer) -> Integer -> IO IntegerArray
+randomVec :: (Int, Int) -> Int -> IO IntArray
 randomVec range@(hi, lo) n = do
     g <- getStdGen
     let rs =  randomRs range g
-    let vec = Vec.fromListN (fromIntegral n) rs
+    let vec = U.fromListN n rs
     return vec
+
+picoToNano :: Integer -> Integer
+picoToNano x = x `div` 1000
+
+picoToMilli :: Integer -> Integer
+picoToMilli x = x `div` 1000000000
 
 getTime :: IO Integer
 getTime = do
     pico <- getCPUTime
-    return (pico `div` 1000000000)
+    return $ picoToMilli pico

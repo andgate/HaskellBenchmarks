@@ -2,8 +2,7 @@ module QuadraticCount (count) where
 
 import CountFrequency
 
-import qualified Data.Vector as Vec
-import Data.Vector (Vector, (!))
+import Data.Vector.Unboxed as U
 
-count :: Vector Integer -> Vector (Integer, Integer)
-count vec = Vec.map (countFreq vec) vec
+count :: U.Vector Int -> U.Vector (Int, Int)
+count vec = U.map (countFreq vec) vec
